@@ -1,0 +1,7 @@
+project_id = "priceradar-id"
+[functions.enqueue-scrape]
+verify_jwt = false
+[functions.scrape-batch]
+verify_jwt = false
+[functions.search-listings]
+verify_jwt = false

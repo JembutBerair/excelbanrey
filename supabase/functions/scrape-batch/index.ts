@@ -1,0 +1,7 @@
+import {admin,checked,cors,errorText,isCron,json} from '../_shared/core.ts';import {getProvider} from '../_shared/providers.ts';
+Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response(null,{headers:cors});if(req.method!=='POST')return json({error:'Method not allowed'},405);if(!isCron(req))return json({error:'unauthorized'},401);try{
+ const db=admin(),provider=getProvider();const jobs=await checked(db.rpc('claim_scrape_jobs',{p_limit:15}));const queue=[...(jobs||[])];let processed=0;
+ // Three workers; each sequentially waits 1–3s. Fifteen 25s calls fit the lease.
+ await Promise.all(Array.from({length:3},async()=>{while(queue.length){const job=queue.shift()!;let result=null,error=null;try{const listing=await checked(db.from('listings').select('url,is_active,match_status').eq('id',job.listing_id).single());if(!listing||!listing.is_active||listing.match_status!=='confirmed')throw Error('not_found: disabled listing');await new Promise(r=>setTimeout(r,1000+Math.random()*2000));result=await provider.fetchListing(listing.url);}catch(e){error=errorText(e);}await checked(db.rpc('finish_scrape_job',{p_job:job.id,p_token:job.lock_token,p_result:result,p_error:error}));processed++;}}));
+ await checked(db.rpc('close_scrape_runs'));return json({processed,provider:Deno.env.get('SCRAPER_PROVIDER')||'mock'});
+ }catch(e){console.error('Batch failure:',errorText(e));return json({error:errorText(e)},500);}});

@@ -1,0 +1,10 @@
+{
+  "nodeModulesDir": "auto",
+  "compilerOptions": {
+    "strict": true
+  },
+  "fmt": {
+    "lineWidth": 110
+  },
+  "lock": "./deno.lock"
+}
